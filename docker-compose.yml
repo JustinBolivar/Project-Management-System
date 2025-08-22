@@ -12,6 +12,12 @@ services:
       - app-network
     depends_on:
       - vite
+      - db
+    command: >
+      sh -c "
+        php artisan migrate --force &&
+        php-fpm
+      "
 
   # The Vite build container
   vite:
