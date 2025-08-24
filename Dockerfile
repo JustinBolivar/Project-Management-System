@@ -25,7 +25,9 @@ RUN npm install
 
 # Copy the rest of the application code
 COPY --chown=www-data:www-data . /var/www/html
-
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
 # Expose port 9000 and run php-fpm
 EXPOSE 9000
 CMD ["php-fpm", "-F"]
