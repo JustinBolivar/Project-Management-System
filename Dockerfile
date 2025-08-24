@@ -19,6 +19,11 @@ RUN docker-php-ext-install pdo_sqlite exif pcntl bcmath sockets
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy package files and install npm dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of the application code
 COPY --chown=www-data:www-data . /var/www/html
 
 # Expose port 9000 and run php-fpm
