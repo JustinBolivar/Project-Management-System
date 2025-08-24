@@ -12,7 +12,7 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         // Return projects belonging to the authenticated user
-        return ProjectResource::collection($request->user()->projects()->paginate(10));
+        return ProjectResource::collection($request->user()->projects()->get());
     }
 
     public function store(Request $request)

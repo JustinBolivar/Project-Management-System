@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\Project;
@@ -10,11 +11,12 @@ use App\Http\Resources\TaskResource;
 
 class TaskController extends Controller
 {
+    use AuthorizesRequests;
     public function index(Project $project)
     {
         // Authorize that the user can view tasks for this project
         $this->authorize('view', $project);
-        return TaskResource::collection($project->tasks()->paginate(10));
+        return TaskResource::collection($project->tasks()->get());
     }
 
     public function store(Request $request, Project $project)

@@ -1,23 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import TaskItem from './TaskItem';
-
-// Dummy task data for demonstration
-const mockTasks = [
-    { id: 101, projectId: 1, title: "Design social media graphics", description: "Create visuals for Facebook and Instagram.", assignedUsers: [{ name: 'Alice' }, { name: 'Bob' }] },
-    { id: 102, projectId: 1, title: "Write blog post announcement", description: "Draft a post for the company blog.", assignedUsers: [{ name: 'Charlie' }] },
-    { id: 103, projectId: 2, title: "Set up user authentication endpoint", description: "Implement JWT for user login.", assignedUsers: [{ name: 'David' }, { name: 'Eve' }] },
-    { id: 104, projectId: 2, title: "Create database schema for tasks", description: "Define the tasks table and relationships.", assignedUsers: [{ name: 'David' }] },
-];
+import apiClient from '../api';
 
 export default function TaskList({ projectId }) {
-    const tasksForProject = mockTasks.filter(task => task.projectId === projectId);
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        // Guard clause: If there's no projectId, don't fetch.
+        if (!projectId) return;
+
+        const fetchTasks = async () => {
+            try {
+                setLoading(true);
+                // Use the nested resource endpoint for tasks
+                const response = await apiClient.get(`/projects/${projectId}/tasks`);
+                setTasks(response.data.data); // API data is nested
+                setError(null);
+            } catch (err) {
+                console.error(`Failed to fetch tasks for project ${projectId}:`, err);
+                setError("Could not load tasks for this project.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTasks();
+    }, [projectId]); // This effect re-runs whenever the projectId prop changes
+
+    if (loading) {
+        return <div>Loading tasks...</div>;
+    }
+
+    if (error) {
+        return <div className="text-red-500">{error}</div>;
+    }
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-2xl font-semibold text-gray-700 mb-4">Tasks</h3>
             <div className="space-y-4">
-                {tasksForProject.length > 0 ? (
-                    tasksForProject.map(task => <TaskItem key={task.id} task={task} />)
+                {tasks.length > 0 ? (
+                    tasks.map(task => <TaskItem key={task.id} task={task} />)
                 ) : (
                     <p className="text-gray-500">No tasks in this project yet.</p>
                 )}

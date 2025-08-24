@@ -1,22 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import ProjectDetails from '../components/ProjectDetails';
-
-// Dummy Data
-const mockProjects = [
-    { id: 1, name: 'Q1 Marketing Campaign', description: 'Launch campaign for the new product line.' },
-    { id: 2, name: 'New Mobile App API', description: 'Backend development for the iOS and Android apps.' },
-    { id: 3, name: 'Website Redesign', description: 'Complete overhaul of the company public website.' },
-];
+import apiClient from '../api';
 
 export default function DashboardPage() {
-    const [selectedProject, setSelectedProject] = useState(mockProjects[0]);
+    const [projects, setProjects] = useState([]);
+    const [selectedProject, setSelectedProject] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch projects from the API when the component mounts
+    useEffect(() => {
+        const fetchProjects = async () => {
+            try {
+                setLoading(true);
+                const response = await apiClient.get('/projects');
+
+                // For debugging: log the actual data structure to see what you're getting
+                console.log("API Response:", response.data);
+
+                let projectsData = response.data;
+
+                // Handle both `{ data: [...] }` and `[...]`
+                if (projectsData.data && Array.isArray(projectsData.data)) {
+                    projectsData = projectsData.data;
+                }
+
+                if (Array.isArray(projectsData)) {
+                    setProjects(projectsData);
+                    if (projectsData.length > 0) {
+                        setSelectedProject(projectsData[0]);
+                    }
+                    setError(null);
+                } else {
+                    console.error("API did not return an array of projects:", projectsData);
+                    setError("Received an invalid response from the server.");
+                }
+
+
+            } catch (err) {
+                console.error("Failed to fetch projects:", err);
+                setError("Could not load your projects. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProjects();
+    }, []);
+
+    if (loading) {
+        return <div className="flex items-center justify-center h-screen">Loading projects...</div>;
+    }
+
+    if (error) {
+        return <div className="flex items-center justify-center h-screen text-red-500">{error}</div>;
+    }
 
     return (
         <div className="flex h-screen bg-gray-100 font-sans">
             {/* Sidebar */}
             <Sidebar
-                projects={mockProjects}
+                projects={projects}
                 onSelectProject={setSelectedProject}
                 selectedProjectId={selectedProject?.id}
             />
@@ -27,7 +72,7 @@ export default function DashboardPage() {
                     <ProjectDetails project={selectedProject} />
                 ) : (
                     <div className="flex items-center justify-center h-full">
-                        <h2 className="text-2xl text-gray-500">Select a project to get started</h2>
+                        <h2 className="text-2xl text-gray-500">Select a project or create a new one to get started.</h2>
                     </div>
                 )}
             </main>
