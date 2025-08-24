@@ -15,9 +15,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
-    // Project Routes
     Route::apiResource('projects', ProjectController::class);
 
-    // Task Routes (nested under projects)
-    Route::apiResource('projects.tasks', TaskController::class)->shallow();
+    Route::scopeBindings()->group(function () {
+        Route::apiResource('projects.tasks', TaskController::class);
+    });
 });
+

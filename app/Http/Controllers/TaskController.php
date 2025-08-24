@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\Project;
@@ -11,40 +10,33 @@ use App\Http\Resources\TaskResource;
 
 class TaskController extends Controller
 {
-    use AuthorizesRequests;
     public function index(Project $project)
     {
-        // Authorize that the user can view tasks for this project
         $this->authorize('view', $project);
-        return TaskResource::collection($project->tasks()->get());
+        return TaskResource::collection(
+            $project->tasks()->latest()->get()
+        );
     }
 
     public function store(Request $request, Project $project)
     {
-        $this->authorize('update', $project); // Only project owner can add tasks
+        $this->authorize('update', $project);
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
-            'due_date' => 'nullable|date',
-            'status' => 'sometimes|string|in:pending,in_progress,completed',
-            'assigned_users' => 'nullable|array',
-            'assigned_users.*' => 'exists:users,id' // Ensure users exist
+            'due_date'    => 'nullable|date',
+            'status'      => 'sometimes|string|in:pending,in_progress,completed',
         ]);
 
         $task = $project->tasks()->create($validated);
-
-        if (isset($validated['assigned_users'])) {
-            $task->users()->sync($validated['assigned_users']);
-        }
-
         return new TaskResource($task);
     }
 
     public function show(Project $project, Task $task)
     {
         $this->authorize('view', $project);
-        return new TaskResource($task->load('users')); // Eager load assigned users
+        return new TaskResource($task);
     }
 
     public function update(Request $request, Project $project, Task $task)
@@ -52,26 +44,19 @@ class TaskController extends Controller
         $this->authorize('update', $project);
 
         $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
+            'name'        => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'due_date' => 'nullable|date',
-            'status' => 'sometimes|string|in:pending,in_progress,completed',
-            'assigned_users' => 'nullable|array',
-            'assigned_users.*' => 'exists:users,id'
+            'due_date'    => 'nullable|date',
+            'status'      => 'sometimes|string|in:pending,in_progress,completed',
         ]);
 
         $task->update($validated);
-
-        if (isset($validated['assigned_users'])) {
-            $task->users()->sync($validated['assigned_users']);
-        }
-
         return new TaskResource($task);
     }
 
     public function destroy(Project $project, Task $task)
     {
-        $this->authorize('update', $project);
+        $this->authorize('delete', $project);
         $task->delete();
         return response()->json(null, 204);
     }
