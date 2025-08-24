@@ -60,7 +60,7 @@ export default function LoginPage() {
         <div className="min-h-screen bg-gray-100 flex items-center justify-center">
             <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
                 <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">Welcome Back!</h2>
-                <p className="text-center text-gray-500 mb-8">Sign in to continue to ProjectPilot</p>
+                <p className="text-center text-gray-500 mb-8">Sign in to continue to ProjectCtrl</p>
 
                 {/* The onSubmit event on the form is the key to triggering the login logic */}
                 <form onSubmit={handleLogin}>
