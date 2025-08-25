@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Http\Resources\ProjectResource;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ProjectController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index(Request $request)
     {
-        // Return projects belonging to the authenticated user
         return ProjectResource::collection($request->user()->projects()->get());
     }
 
@@ -21,15 +23,12 @@ class ProjectController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
         ]);
-
         $project = $request->user()->projects()->create($validated);
-
         return new ProjectResource($project);
     }
 
     public function show(Request $request, Project $project)
     {
-        // Authorize that the user owns the project
         $this->authorize('view', $project);
         return new ProjectResource($project);
     }
@@ -37,14 +36,11 @@ class ProjectController extends Controller
     public function update(Request $request, Project $project)
     {
         $this->authorize('update', $project);
-
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
         ]);
-
         $project->update($validated);
-
         return new ProjectResource($project);
     }
 

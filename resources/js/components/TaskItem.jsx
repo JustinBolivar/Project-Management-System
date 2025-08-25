@@ -1,28 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import apiClient from "../api";
 
 export default function TaskItem({ task, projectId, onTaskUpdated, onTaskDeleted }) {
     const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState({
-        name: task.name,
-        description: task.description,
-        due_date: task.due_date || "",
-        status: task.status || "pending",
-    });
+    const [formData, setFormData] = useState({ ...task });
+
+    // Keep formData in sync with parent task prop
+    useEffect(() => {
+        setFormData({ ...task });
+    }, [task]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleUpdate = async (e) => {
         e.preventDefault();
+        if (!task.id) {
+            alert("Task is missing an ID and cannot be updated yet.");
+            return;
+        }
         try {
             const response = await apiClient.put(
                 `/projects/${projectId}/tasks/${task.id}`,
                 formData
             );
-            onTaskUpdated(response.data);
+            onTaskUpdated(response.data); // notify parent immediately
             setIsEditing(false);
         } catch (err) {
             console.error("Update failed", err);
@@ -33,8 +38,10 @@ export default function TaskItem({ task, projectId, onTaskUpdated, onTaskDeleted
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this task?")) return;
         try {
-            await apiClient.delete(`/projects/${projectId}/tasks/${task.id}`);
-            onTaskDeleted(task.id);
+            await apiClient.delete(
+                `/projects/${projectId}/tasks/${task.id}`
+            );
+            onTaskDeleted(task.id); // notify parent immediately
         } catch (err) {
             console.error("Delete failed", err);
             alert("Could not delete task");
@@ -51,11 +58,9 @@ export default function TaskItem({ task, projectId, onTaskUpdated, onTaskDeleted
 
                         {task.assigned_users?.length > 0 && (
                             <div className="flex items-center mt-3">
-                                <span className="text-sm font-medium text-gray-500 mr-3">
-                                    Assigned:
-                                </span>
+                                <span className="text-sm font-medium text-gray-500 mr-3">Assigned:</span>
                                 <div className="flex -space-x-2">
-                                    {task.assigned_users.map((user) => (
+                                    {task.assigned_users.map(user => (
                                         <div
                                             key={user.id}
                                             title={user.name}
@@ -69,7 +74,7 @@ export default function TaskItem({ task, projectId, onTaskUpdated, onTaskDeleted
                         )}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mt-2">
                         <button
                             className="text-gray-400 hover:text-blue-500 transition-colors"
                             onClick={() => setIsEditing(true)}
@@ -89,27 +94,27 @@ export default function TaskItem({ task, projectId, onTaskUpdated, onTaskDeleted
                     <input
                         type="text"
                         name="name"
-                        value={formData.name}
+                        value={formData.name || ""}
                         onChange={handleChange}
                         className="w-full border px-2 py-1 rounded"
                         required
                     />
                     <textarea
                         name="description"
-                        value={formData.description}
+                        value={formData.description || ""}
                         onChange={handleChange}
                         className="w-full border px-2 py-1 rounded"
                     />
                     <input
                         type="date"
                         name="due_date"
-                        value={formData.due_date}
+                        value={formData.due_date || ""}
                         onChange={handleChange}
                         className="w-full border px-2 py-1 rounded"
                     />
                     <select
                         name="status"
-                        value={formData.status}
+                        value={formData.status || "pending"}
                         onChange={handleChange}
                         className="w-full border px-2 py-1 rounded"
                     >
