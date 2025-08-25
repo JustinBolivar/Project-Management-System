@@ -29,8 +29,11 @@ export default function ProjectDetails({ project }) {
             });
 
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Server error:", response.status, errorText);
                 throw new Error("Failed to create task");
             }
+
 
             const newTask = await response.json();
             console.log("Created:", newTask);
