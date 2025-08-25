@@ -1,38 +1,41 @@
 import React, { useState } from "react";
 import { FiPlus, FiLogOut } from "react-icons/fi";
-import apiClient from "../api"; // ✅ use axios client with token interceptor
+import apiClient from "../api"; // axios instance with token interceptor
+import { useNavigate } from "react-router-dom"; // if using react-router
 
 export default function Sidebar({ projects, onSelectProject, selectedProjectId, onProjectCreated }) {
-    // Load current user from localStorage
+    const navigate = useNavigate(); // for redirecting after logout
+
     const storedUser = localStorage.getItem("user");
     const currentUser = storedUser ? JSON.parse(storedUser) : { name: "Guest", email: "" };
 
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        name: "",
-        description: "",
-    });
+    const [formData, setFormData] = useState({ name: "", description: "" });
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const response = await apiClient.post("/projects", formData);
-            console.log("Project created:", response.data);
-
             setFormData({ name: "", description: "" });
             setShowModal(false);
-
-            // Call parent callback to refresh project list
-            if (onProjectCreated) {
-                onProjectCreated(response.data);
-            }
+            if (onProjectCreated) onProjectCreated(response.data);
         } catch (err) {
             console.error(err.response?.data || err.message);
             alert("Could not create project");
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await apiClient.post("/logout");
+            localStorage.removeItem("user");
+            localStorage.removeItem("authToken");
+            navigate("/login");
+        } catch (err) {
+            console.error("Logout failed", err);
+            alert("Could not logout");
         }
     };
 
@@ -57,14 +60,11 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
             {/* Project List */}
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Projects</h2>
-                {projects.map((project) => (
+                {projects.map(project => (
                     <a
                         key={project.id}
                         href="#"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onSelectProject(project);
-                        }}
+                        onClick={(e) => { e.preventDefault(); onSelectProject(project); }}
                         className={`block py-2.5 px-4 rounded-lg transition duration-200 ${
                             selectedProjectId === project.id
                                 ? "bg-gray-700 text-white"
@@ -86,7 +86,11 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                         <p className="font-semibold">{currentUser.name}</p>
                         <p className="text-sm text-gray-400">{currentUser.email}</p>
                     </div>
-                    <button className="ml-auto text-gray-400 hover:text-white">
+                    <button
+                        onClick={handleLogout} // ✅ attach logout
+                        className="ml-auto text-gray-400 hover:text-white"
+                        title="Logout"
+                    >
                         <FiLogOut size={20} />
                     </button>
                 </div>
@@ -114,7 +118,6 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                                 onChange={handleChange}
                                 className="w-full border px-3 py-2 rounded-lg"
                             />
-
                             <div className="flex justify-end gap-2">
                                 <button
                                     type="button"
