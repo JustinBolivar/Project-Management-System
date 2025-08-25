@@ -1,54 +1,239 @@
-# Project Management System
+ProjectCtrl Application
 
-A Laravel + React project with TailwindCSS, Vite, and Docker.
+ProjectCtrl is a full-stack web application for project management, featuring a React frontend and a Laravel backend. It allows users to create, view, update, and delete projects with real-time updates in the UI. The entire application is containerized using Docker and orchestrated with Docker Compose.
+✨ Features
 
-This README provides clear instructions to set up and run the application on any machine using Docker.
+    Full-Stack Architecture: React frontend for dynamic user interfaces and Laravel backend for robust API services.
 
----
+    Project Management: Create, view, update, and delete projects through a dedicated API.
 
-## Prerequisites
+    Dynamic Sidebar: Real-time updates to the project list when projects are added, modified, or removed, without requiring a full page refresh.
 
-Before starting, make sure you have:
+    Project Details View: Displays detailed information for the currently selected project.
 
-- [Docker](https://www.docker.com/get-started)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+    User Authentication: Includes client-side handling for user data (local storage) and logout functionality, interacting with a backend authentication system.
 
----
+    Responsive UI: Built with Tailwind CSS for an adaptive user experience across various devices.
 
-## Step 1: Clone the Repository
+    Containerized Deployment: Utilizes Docker and Docker Compose for easy setup and consistent environments.
 
-Clone the project repository to your local machine:
+🚀 Technologies Used
 
-```bash
+    Frontend:
+
+        React (^19.1.1) - A JavaScript library for building user interfaces.
+
+        Vite (^6.3.5) - A fast frontend build tool.
+
+        Tailwind CSS (^3.4.17) - A utility-first CSS framework.
+
+        React Icons (^5.5.0) - SVG React icons.
+
+        React Router DOM (^7.8.2) - For client-side routing.
+
+        Axios (^1.11.0) - Promise-based HTTP client for API requests.
+
+    Backend:
+
+        Laravel - A PHP web application framework.
+
+        PHP (8.2-fpm-alpine) - Server-side scripting language.
+
+        SQLite - Default database for development.
+
+    Containerization:
+
+        Docker - For building, shipping, and running applications in containers.
+
+        Docker Compose - For defining and running multi-container Docker applications.
+
+        Nginx - Web server for serving the Laravel application.
+
+📋 Prerequisites
+
+Before you begin, ensure you have the following installed on your machine:
+
+    Node.js: v18.x or later (includes npm)
+
+        Download Node.js
+
+    Docker Desktop: For building and running Docker containers.
+
+        Download Docker Desktop
+
+⚙️ Setup Instructions
+
+Follow these steps to get ProjectCtrl up and running on your local machine using Docker Compose.
+1. Clone the Repository
+
 git clone https://github.com/JustinBolivar/Project-Management-System.git
-cd project-management-system
+cd projectctrl-root-directory # Navigate to the root of your project
 
-Update the .env file with the following SQLite and application settings:
+2. Environment Configuration
 
-APP_NAME=Laravel
-APP_ENV=local
-APP_KEY=base64:your-generated-key
-APP_DEBUG=true
-APP_URL=http://web
-VITE_APP_URL=http://web
-VITE_DEV_SERVER_URL=http://vite:5173
+There is one .env file located in the root of your Laravel project that handles configuration for both the backend and the frontend (via Vite).
 
-DB_CONNECTION=sqlite
-DB_DATABASE=/var/www/html/database/database.sqlite
+Generate your own .env file if it doesn't exist:
 
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
+    Start your Docker Compose services (temporarily):
+    Navigate to the root of your project and run:
 
-Ensure the database folder exists:
+    docker compose up -d app
 
-mkdir -p database
-touch database/database.sqlite
+    This will bring up just the app (Laravel PHP-FPM) service.
 
-The project uses Docker for the backend, frontend (Vite), and web server (Nginx). Build and start the containers with:
-docker-compose up -d --build
+    Generate .env from example and a new application key:
+    Execute the following commands within the app container to copy the example environment file and generate a unique application key:
 
+    docker compose exec app cp .env.example .env
+    docker compose exec app php artisan key:generate
 
-After the containers are up, run the migrations to create tables including sessions:
-docker-compose exec app php artisan migrate --force
+    Stop the temporary container:
 
-YOu should see the application in http://localhost:8000
+    docker compose down
+
+    Edit the generated .env file:
+    Open the newly created .env file in the root of your Laravel project. You'll need to verify and update the following variables to ensure they work correctly within the Docker Compose environment:
+
+    APP_NAME=Laravel
+    APP_ENV=local
+    APP_KEY=base64:... # This will be automatically generated by `php artisan key:generate`
+    APP_DEBUG=true
+    APP_TIMEZONE=UTC
+    APP_URL=http://web # IMPORTANT: This points to the 'web' service within the Docker network
+    VITE_APP_URL=http://web # IMPORTANT: This also points to the 'web' service
+    VITE_DEV_SERVER_URL=http://vite:5173 # IMPORTANT: This points to the 'vite' service within the Docker network
+
+    # Database Configuration (for SQLite within the Docker container)
+    DB_CONNECTION=sqlite
+    DB_DATABASE=/var/www/html/database/database.sqlite # Path inside the Docker container
+
+    # You can leave other settings as their default values for development,
+    # or configure them as needed.
+
+    Ensure the APP_KEY is present and unique. The APP_URL, VITE_APP_URL, and VITE_DEV_SERVER_URL are crucial for internal Docker networking and Vite integration.
+
+🐳 Running with Docker Compose
+
+This project uses Docker Compose to manage its services.
+1. Place docker-compose.yml and Backend Dockerfile
+
+Ensure your docker-compose.yml file and the Laravel Dockerfile are in the root of the project directory, as they define how your services are built and run.
+
+The Dockerfile provided is for the Laravel backend:
+
+# Dockerfile for Laravel Backend
+FROM php:8.2-fpm-alpine
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Install dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    libxml2-dev \
+    sqlite-dev \
+    nodejs \
+    npm \
+    linux-headers
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo_sqlite exif pcntl bcmath sockets
+
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copy package files and install npm dependencies (for Laravel's JS dependencies, if any)
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of the application code
+COPY --chown=www-data:www-data . /var/www/html
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
+
+# Expose port 9000 and run php-fpm
+EXPOSE 9000
+CMD ["php-fpm", "-F"]
+
+2. Start the Services
+
+From the root of your project directory, run the following command to build and start all services defined in docker-compose.yml:
+
+docker compose up --build -d
+
+    --build: Rebuilds images if there are changes to your Dockerfiles.
+
+    -d: Runs the containers in detached mode (in the background).
+
+This command will:
+
+    Build the app service (Laravel PHP-FPM) using the provided Dockerfile.
+
+    Start the vite service (your React development server), which will install frontend dependencies and run npm run dev.
+
+    Start the web service (Nginx) to serve your Laravel backend.
+
+    Establish internal networking between these services.
+
+3. Run Laravel Migrations
+
+Once the containers are up, you'll need to run Laravel's database migrations. You can do this by executing a command within the app container:
+
+docker compose exec app php artisan migrate
+
+4. Seed the Database (Optional)
+
+If you want to populate your database with demo data (a demo user, projects, and tasks), you can run the provided seeder.
+
+The DemoSeeder will create:
+
+    A user with:
+
+        Name: Demo User
+
+        Email: demo@example.com
+
+        Password: password
+
+    3 projects associated with this demo user.
+
+    5 tasks for each of those 3 projects.
+
+To run the seeder, execute the following command within the app container:
+
+docker compose exec app php artisan db:seed --class=DemoSeeder
+
+▶️ Usage
+
+    Access the Frontend (React App):
+    Open your web browser and navigate to:
+    👉 http://localhost:5173
+
+    This will serve your React application via the Vite development server running in the vite Docker service.
+
+    Access the Backend API (Laravel App):
+    Your React frontend will make API calls to:
+    👉 http://localhost:8000/api
+
+    This endpoint is handled by the web (Nginx) and app (PHP-FPM) Docker services.
+
+    Login: If you ran the seeder, you can log in using demo@example.com and password password. Otherwise, you'll need to register or use existing credentials.
+
+    Create New Project: Click the "New Project" button in the sidebar to create a new project.
+
+    Select Project: Click on a project name in the sidebar to view its details.
+
+    Update/Delete Project: Hover over a project in the sidebar, click the "..." menu, and select "Update" or "Delete".
+
+💡 Important Notes
+
+    API Client Configuration: Your apiClient.js is correctly configured to point to http://localhost:8000/api and includes an interceptor for authToken from localStorage.
+
+    Vite Hot Module Replacement (HMR): The vite service provides HMR for the React frontend, meaning changes to your React code should reflect instantly in the browser without a full page refresh.
+
+    Laravel Development: For backend development, you'll typically interact with the app service for artisan commands (e.g., php artisan make:model).
+
+    Nginx Configuration: The docker/nginx/nginx.conf file is crucial for Nginx to correctly route requests to your Laravel PHP-FPM service. Ensure it's properly configured for your Laravel project.
