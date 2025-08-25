@@ -15,17 +15,10 @@ export default function DashboardPage() {
             try {
                 setLoading(true);
                 const response = await apiClient.get('/projects');
-
-                // For debugging: log the actual data structure to see what you're getting
-                console.log("API Response:", response.data);
-
                 let projectsData = response.data;
-
-                // Handle both `{ data: [...] }` and `[...]`
                 if (projectsData.data && Array.isArray(projectsData.data)) {
                     projectsData = projectsData.data;
                 }
-
                 if (Array.isArray(projectsData)) {
                     setProjects(projectsData);
                     if (projectsData.length > 0) {
@@ -36,8 +29,6 @@ export default function DashboardPage() {
                     console.error("API did not return an array of projects:", projectsData);
                     setError("Received an invalid response from the server.");
                 }
-
-
             } catch (err) {
                 console.error("Failed to fetch projects:", err);
                 setError("Could not load your projects. Please try again later.");
@@ -45,9 +36,38 @@ export default function DashboardPage() {
                 setLoading(false);
             }
         };
-
         fetchProjects();
     }, []);
+
+    // New function to handle adding a new project
+    const handleProjectCreated = (newProject) => {
+        setProjects((prevProjects) => [...prevProjects, newProject]);
+        setSelectedProject(newProject);
+    };
+
+    // New function to handle updating an existing project
+    const handleProjectUpdated = (updatedProject) => {
+        setProjects((prevProjects) =>
+            prevProjects.map((project) =>
+                project.id === updatedProject.id ? updatedProject : project
+            )
+        );
+        // If the updated project is currently selected, update the details view as well
+        if (selectedProject?.id === updatedProject.id) {
+            setSelectedProject(updatedProject);
+        }
+    };
+
+    // New function to handle deleting a project
+    const handleProjectDeleted = (deletedProjectId) => {
+        setProjects((prevProjects) =>
+            prevProjects.filter((project) => project.id !== deletedProjectId)
+        );
+        // If the deleted project was selected, clear the details view
+        if (selectedProject?.id === deletedProjectId) {
+            setSelectedProject(null);
+        }
+    };
 
     if (loading) {
         return <div className="flex items-center justify-center h-screen">Loading projects...</div>;
@@ -64,6 +84,9 @@ export default function DashboardPage() {
                 projects={projects}
                 onSelectProject={setSelectedProject}
                 selectedProjectId={selectedProject?.id}
+                onProjectCreated={handleProjectCreated}
+                onProjectUpdated={handleProjectUpdated}
+                onProjectDeleted={handleProjectDeleted}
             />
 
             {/* Main Content */}

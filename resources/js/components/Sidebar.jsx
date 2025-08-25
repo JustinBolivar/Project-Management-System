@@ -1,9 +1,16 @@
 import React, { useState } from "react";
-import { FiPlus, FiLogOut, FiMoreVertical, FiMoreHorizontal } from "react-icons/fi";
+import { FiPlus, FiLogOut, FiMoreHorizontal } from "react-icons/fi";
 import apiClient from "../api";
 import { useNavigate } from "react-router-dom";
 
-export default function Sidebar({ projects, onSelectProject, selectedProjectId, onProjectCreated, onProjectUpdated, onProjectDeleted }) {
+export default function Sidebar({
+    projects,
+    onSelectProject,
+    selectedProjectId,
+    onProjectCreated,
+    onProjectUpdated,
+    onProjectDeleted,
+}) {
     const navigate = useNavigate();
     const storedUser = localStorage.getItem("user");
     const currentUser = storedUser ? JSON.parse(storedUser) : { name: "Guest", email: "" };
@@ -23,9 +30,19 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
         e.preventDefault();
         try {
             const response = await apiClient.post("/projects", createData);
+            const newProject = response.data;
+
             setCreateData({ name: "", description: "" });
             setShowCreateModal(false);
-            onProjectCreated?.(response.data);
+
+            // ensure project has name/description by using backend response
+            if (!newProject.name || !newProject.description) {
+                // fallback: fetch all projects
+                const refreshed = await apiClient.get("/projects");
+                onProjectCreated?.(refreshed.data);
+            } else {
+                onProjectCreated?.(newProject);
+            }
         } catch (err) {
             console.error(err.response?.data || err.message);
             alert("Could not create project");
@@ -91,17 +108,18 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
             {/* Project List */}
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Projects</h2>
-                {projects.map(project => (
-                    <div key={project.id} className="relative group">
+                {projects.map((project, index) => (
+                    <div key={project.id || index} className="relative group">
                         <a
                             href="#"
                             onClick={(e) => { e.preventDefault(); onSelectProject(project); }}
-                            className={`block py-2.5 px-4 rounded-lg transition duration-200 ${selectedProjectId === project.id
+                            className={`block py-2.5 px-4 rounded-lg transition duration-200 ${
+                                selectedProjectId === project.id
                                     ? "bg-gray-700 text-white"
                                     : "hover:bg-gray-800 hover:text-white"
-                                }`}
+                            }`}
                         >
-                            {project.name}
+                            {project.name || "Untitled Project"}
                         </a>
 
                         <button
@@ -139,6 +157,7 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                 ))}
             </nav>
 
+            {/* Footer */}
             <div className="p-4 border-t border-gray-700">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center font-bold">
@@ -154,6 +173,7 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                 </div>
             </div>
 
+            {/* Create Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white text-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md">
@@ -184,6 +204,7 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                 </div>
             )}
 
+            {/* Update Modal */}
             {showUpdateModal && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white text-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md">
@@ -199,8 +220,8 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                             />
                             <textarea
                                 name="description"
-                                value={createData.description || ""}
-                                onChange={(e) => handleChange(e, setCreateData)}
+                                value={updateData.description || ""}
+                                onChange={(e) => handleChange(e, setUpdateData)}
                                 className="w-full border px-3 py-2 rounded-lg"
                             />
                             <div className="flex justify-end gap-2">
@@ -212,6 +233,7 @@ export default function Sidebar({ projects, onSelectProject, selectedProjectId, 
                 </div>
             )}
 
+            {/* Delete Modal */}
             {showDeleteModal && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white text-gray-800 p-6 rounded-lg shadow-lg w-full max-w-sm">
