@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
-import apiClient from "../api"; // use your axios instance
+import apiClient from "../api";
 
-export default function TaskItem({ task, onTaskUpdated, onTaskDeleted }) {
+export default function TaskItem({ task, projectId, onTaskUpdated, onTaskDeleted }) {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         name: task.name,
@@ -19,7 +19,7 @@ export default function TaskItem({ task, onTaskUpdated, onTaskDeleted }) {
         e.preventDefault();
         try {
             const response = await apiClient.put(
-                `/tasks/${task.id}`,
+                `/projects/${projectId}/tasks/${task.id}`,
                 formData
             );
             onTaskUpdated(response.data);
@@ -33,14 +33,13 @@ export default function TaskItem({ task, onTaskUpdated, onTaskDeleted }) {
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this task?")) return;
         try {
-            await apiClient.delete(`/tasks/${task.id}`);
+            await apiClient.delete(`/projects/${projectId}/tasks/${task.id}`);
             onTaskDeleted(task.id);
         } catch (err) {
             console.error("Delete failed", err);
             alert("Could not delete task");
         }
     };
-
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-lg text-gray-900">
@@ -50,7 +49,6 @@ export default function TaskItem({ task, onTaskUpdated, onTaskDeleted }) {
                         <h4 className="font-bold text-lg text-gray-800">{task.name}</h4>
                         <p className="text-gray-600">{task.description}</p>
 
-                        {/* Assigned Users */}
                         {task.assigned_users?.length > 0 && (
                             <div className="flex items-center mt-3">
                                 <span className="text-sm font-medium text-gray-500 mr-3">

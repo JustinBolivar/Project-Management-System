@@ -8,15 +8,13 @@ export default function TaskList({ projectId }) {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        // Guard clause: If there's no projectId, don't fetch.
         if (!projectId) return;
 
         const fetchTasks = async () => {
             try {
                 setLoading(true);
-                // Use the nested resource endpoint for tasks
                 const response = await apiClient.get(`/projects/${projectId}/tasks`);
-                setTasks(response.data.data); // API data is nested
+                setTasks(response.data.data);
                 setError(null);
             } catch (err) {
                 console.error(`Failed to fetch tasks for project ${projectId}:`, err);
@@ -27,22 +25,29 @@ export default function TaskList({ projectId }) {
         };
 
         fetchTasks();
-    }, [projectId]); // This effect re-runs whenever the projectId prop changes
+    }, [projectId]);
 
-    if (loading) {
-        return <div>Loading tasks...</div>;
-    }
-
-    if (error) {
-        return <div className="text-red-500">{error}</div>;
-    }
+    if (loading) return <div>Loading tasks...</div>;
+    if (error) return <div className="text-red-500">{error}</div>;
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-2xl font-semibold text-gray-700 mb-4">Tasks</h3>
             <div className="space-y-4">
                 {tasks.length > 0 ? (
-                    tasks.map(task => <TaskItem key={task.id} task={task} />)
+                    tasks.map(task => (
+                        <TaskItem
+                            key={task.id}
+                            task={task}
+                            projectId={projectId}
+                            onTaskUpdated={(updatedTask) =>
+                                setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t))
+                            }
+                            onTaskDeleted={(deletedTaskId) =>
+                                setTasks(tasks.filter(t => t.id !== deletedTaskId))
+                            }
+                        />
+                    ))
                 ) : (
                     <p className="text-gray-500">No tasks in this project yet.</p>
                 )}
